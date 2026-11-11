@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="img/grabbit_tile.svg" type="image/svg+xml">
+<title>Grabbit Download Manager</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Grabbit Download Manager for Windows: any video or file over up to 32 connections, only the part of a video you want, and a data saver made for bundles. Free during launch.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<style>
+/* Layout: a bright, near-white page led by the name on one line; the video's "Most replayed"
+   timeline is a dark strip under it you can drag. Dark panels are used only for things that move
+   (the timeline, the connection demo, the download). The icon's blue→violet only means progress. */
+:root {
+  --paper: #FBFBF8;
+  --white: #FFFFFF;
+  --ink: #121826;
+  --muted: #5D6678;
+  --line: #E3E5EA;
+  --strip: #0F1626;
+  --strip-2: #1A2540;
+  --strip-ink: #F3F6FC;
+  --strip-muted: #9AA6BD;
+  --blue: #1F6BFF;
+  --cyan: #2BC4FF;
+  --violet: #7B5CFF;
+  --heat: #FF6A3D;
+  --warm: #FFB02E;
+  --ok: #16A34A;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --text: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --wrap: 1240px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.6 var(--text); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; letter-spacing: -0.03em; line-height: 1.02; text-wrap: balance; }
+p { margin: 0; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: var(--blue); }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
+
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 15px 22px; border-radius: 12px; font: 600 16px/1 var(--text); text-decoration: none; color: #fff; background: var(--ink); border: 0; cursor: pointer; transition: transform .15s ease, background .15s ease; }
+.btn:hover { transform: translateY(-1px); background: #000; }
+.btn.ghost { background: var(--white); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--muted); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+
+/* header */
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(12px); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--paper); }
+.top .wrap { display: flex; align-items: center; gap: 28px; padding-block: 16px; }
+.brand { display: flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 18px; white-space: nowrap; }
+.brand img { width: 32px; height: 32px; border-radius: 8px; }
+.top nav { display: flex; gap: 26px; margin-left: auto; }
+.top nav a { color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; }
+.top nav a:hover { color: var(--ink); }
+.top .btn { padding: 12px 18px; font-size: 15px; }
+
+/* hero */
+.hero { padding-top: 56px; }
+.lock { display: flex; align-items: center; gap: clamp(14px, 1.8vw, 22px); }
+.lock img { width: clamp(56px, 6.4vw, 84px); height: auto; border-radius: 22%; flex: none; box-shadow: 0 14px 30px -14px rgba(31, 107, 255, .7); }
+.hero h1 { font-size: clamp(36px, 6.4vw, 86px); min-width: 0; }
+.hero-sub { display: flex; justify-content: space-between; align-items: end; gap: 32px 48px; flex-wrap: wrap; margin-top: 26px; }
+.hero-sub p { color: var(--muted); font-size: 20px; max-width: 48ch; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.fine { color: var(--muted); font-size: 14px; margin-top: 12px; }
+
+/* the timeline strip (hero centrepiece) */
+.strip { background: var(--strip); color: var(--strip-ink); margin-top: 56px; padding-block: 40px 44px; }
+.tl { position: relative; user-select: none; }
+.tl-meta { display: flex; justify-content: space-between; gap: 16px; color: var(--strip-muted); font-size: 14px; margin-bottom: 6px; }
+.tl svg { display: block; width: 100%; height: 170px; }
+.track { position: relative; height: 52px; background: var(--strip-2); border-radius: 10px; margin-top: -4px; touch-action: none; cursor: pointer; }
+.sel { position: absolute; top: -5px; bottom: -5px; border: 3px solid #fff; border-radius: 11px; background: rgba(255, 255, 255, .1); cursor: grab; }
+.sel:active { cursor: grabbing; }
+.sel .h { position: absolute; top: 0; bottom: 0; width: 18px; cursor: ew-resize; }
+.sel .h.l { left: -10px; } .sel .h.r { right: -10px; }
+.sel .h::after { content: ""; position: absolute; top: 12px; bottom: 12px; left: 7px; width: 4px; border-radius: 2px; background: #fff; }
+.chip { position: absolute; bottom: calc(100% + 16px); transform: translateX(-50%); background: var(--warm); color: var(--ink); font: 700 15px/1 var(--text); padding: 11px 14px; border-radius: 10px; white-space: nowrap; pointer-events: none; }
+.ticks { display: flex; justify-content: space-between; color: #7487AA; font-size: 12px; margin-top: 10px; }
+.tl-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 18px; margin-top: 26px; }
+.moments { display: flex; flex-wrap: wrap; gap: 10px; }
+.moments button { display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px; border-radius: 999px; border: 1.5px solid #2A3756; background: transparent; color: var(--strip-ink); font: 600 15px/1 var(--text); cursor: pointer; }
+.moments button svg { width: 18px; height: 18px; }
+.moments button[aria-pressed="true"] { background: var(--strip-ink); color: var(--strip); border-color: var(--strip-ink); }
+.hint { color: var(--strip-muted); font-size: 14px; }
+
+/* sections */
+section.s { padding-block: 110px; }
+.s-head { max-width: 760px; margin-bottom: 48px; }
+.s-head h2 { font-size: clamp(36px, 4.6vw, 60px); }
+.s-head p { color: var(--muted); font-size: 19px; margin-top: 20px; max-width: 58ch; }
+.split { display: grid; grid-template-columns: 1fr 1.25fr; gap: 64px; align-items: center; }
+.split.rev { grid-template-columns: 1.25fr 1fr; }
+.split.rev > .copy { order: 2; }
+.copy { display: grid; gap: 20px; min-width: 0; }
+.copy h2 { font-size: clamp(34px, 4.2vw, 54px); }
+.copy > p { color: var(--muted); font-size: 18px; }
+.points { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 14px; }
+.points li { padding-left: 22px; position: relative; color: var(--muted); }
+.points li::before { content: ""; position: absolute; left: 0; top: .62em; width: 10px; height: 10px; border-radius: 3px; background: linear-gradient(135deg, var(--cyan), var(--violet)); }
+.points b { color: var(--ink); font-weight: 600; }
+.shot { margin: 0; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px var(--line), 0 30px 60px -34px rgba(18, 24, 38, .45); }
+.shot img { width: 100%; }
+.sites b { color: var(--ink); font-weight: 600; }
+.band { background: var(--white); border-block: 1px solid var(--line); }
+
+/* data saver demo (dark, it moves) */
+.netdemo { background: var(--strip); color: var(--strip-ink); border-radius: 20px; padding: 26px; display: grid; gap: 18px; min-width: 0; }
+.switch { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--strip-2); justify-self: start; }
+.switch button { border: 0; background: transparent; color: var(--strip-muted); font: 600 15px/1 var(--text); padding: 10px 18px; border-radius: 999px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--strip-ink); color: var(--strip); }
+.meter { display: grid; gap: 10px; }
+.meter .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; color: var(--strip-muted); font-size: 14px; }
+.meter .row b { color: var(--strip-ink); font-family: var(--display); font-weight: 800; font-size: 36px; letter-spacing: -0.02em; }
+.meter .barx { height: 10px; border-radius: 6px; background: var(--strip-2); overflow: hidden; }
+.meter .barx i { display: block; height: 100%; width: 31.5%; border-radius: 6px; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+.status { font-size: 15px; font-weight: 600; }
+.status.wifi { color: #5BE49B; } .status.mobile { color: var(--warm); }
+.dlrow { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 12px; background: var(--strip-2); font-size: 15px; }
+.dlrow span:last-child { font-weight: 600; }
+.dlrow .run { color: var(--cyan); } .dlrow .wait { color: var(--warm); }
+
+/* guide */
+.steps { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 26px; scrollbar-width: thin; }
+.steps button { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 10px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--white); color: var(--ink); font: 600 15px/1 var(--text); cursor: pointer; }
+.steps button .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #EEF1F6; font-size: 13px; }
+.steps button[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.steps button[aria-selected="true"] .n { background: #fff; color: var(--ink); }
+.stage { display: grid; grid-template-columns: 8fr 4fr; gap: 40px; align-items: start; }
+.annot { position: relative; min-width: 0; }
+.dot { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: var(--heat); color: #fff; font: 800 14px/26px var(--text); text-align: center; border: 2px solid #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); cursor: pointer; padding: 0; transition: transform .15s ease; }
+.dot.on, .dot:hover { transform: scale(1.18); }
+.legend h3 { font-size: 26px; }
+.legend > p { color: var(--muted); margin: 10px 0 14px; }
+.legend ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.legend li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; padding: 10px; border-radius: 12px; color: var(--muted); }
+.legend li b { width: 26px; height: 26px; border-radius: 50%; background: var(--heat); color: #fff; font: 800 13px/26px var(--text); text-align: center; }
+.legend li.on { background: #EEF1F6; color: var(--ink); }
+.stage-nav { display: flex; gap: 10px; margin-top: 18px; }
+.stage-nav button { padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--white); color: var(--ink); font: 600 14px/1 var(--text); cursor: pointer; }
+.stage-nav button:disabled { opacity: .4; cursor: default; }
+
+/* everyday */
+.every { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px 48px; }
+.every div { min-width: 0; }
+.every svg { width: 28px; height: 28px; color: var(--blue); }
+.every h3 { font-size: 22px; letter-spacing: -0.015em; margin: 14px 0 8px; }
+.every p { color: var(--muted); font-size: 16px; }
+
+/* pro + get */
+.pro { background: var(--strip); color: var(--strip-ink); border-radius: 24px; padding: 48px; display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center; }
+.pro h2 { font-size: clamp(30px, 3.6vw, 44px); }
+.pro p { color: var(--strip-muted); margin-top: 12px; max-width: 58ch; }
+.pay { display: flex; flex-wrap: wrap; gap: 10px; }
+.pay span { font-weight: 700; padding: 12px 16px; border-radius: 12px; background: var(--strip-2); }
+.get { display: grid; grid-template-columns: 1fr 1.2fr; gap: 64px; }
+.get h2 { font-size: clamp(34px, 4.2vw, 54px); }
+.req { color: var(--muted); margin-top: 22px; display: grid; gap: 6px; font-size: 15px; }
+details { border-bottom: 1px solid var(--line); padding-block: 18px; }
+details:first-of-type { border-top: 1px solid var(--line); }
+summary { cursor: pointer; font-weight: 600; font-size: 18px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--muted); font-size: 24px; line-height: 1; }
+details[open] summary::after { content: "–"; }
+details p { color: var(--muted); margin-top: 12px; max-width: 62ch; }
+footer { border-top: 1px solid var(--line); padding-block: 34px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+footer b { color: var(--ink); font-weight: 600; }
+
+
+/* Download buttons: pressing one opens a light card with 32 connections filling up */
+.dl { margin-top: 18px; max-width: 560px; padding: 18px 20px 16px; border-radius: 16px; background: var(--white); box-shadow: 0 0 0 1px var(--line), 0 18px 40px -24px rgba(18,24,38,.35); }
+.dl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.dl-name { font-weight: 600; color: var(--ink); font-size: 15px; }
+.dl-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.dl-bars { margin-top: 12px; height: 64px; display: grid; grid-template-columns: repeat(32, 1fr); gap: 3px; }
+.dl-bars i { position: relative; border-radius: 3px; background: #EDF1F8; overflow: hidden; }
+.dl-bars i::after { content: ""; position: absolute; inset: auto 0 0 0; height: var(--p, 0%); background: linear-gradient(to top, var(--blue), var(--cyan)); }
+.dl-bars i.done::after { background: linear-gradient(to top, var(--violet), var(--blue)); }
+.dl-line { margin-top: 10px; height: 4px; border-radius: 4px; background: #EDF1F8; overflow: hidden; }
+.dl-line span { display: block; height: 100%; width: var(--p, 0%); background: linear-gradient(90deg, var(--blue), var(--violet)); }
+.dl p.dl-cap { margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; max-width: none; }
+.hero-sub > .dl { margin: 0 0 0 auto; width: min(100%, 460px); }
+.dl-next { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+.dl-next b { color: var(--ink); font-weight: 600; }
+.dl-next ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.dl-next[hidden] { display: none; }
+
+@media (max-width: 960px) {
+  .split, .split.rev, .stage, .get, .pro { grid-template-columns: 1fr; gap: 36px; }
+  .split.rev > .copy { order: 0; }
+  .every { grid-template-columns: 1fr 1fr; }
+  .top nav { display: none; }
+  .top .btn { margin-left: auto; }
+  .pro { padding: 32px; }
+}
+@media (max-width: 560px) {
+  .brand .full { display: none; }
+  .hero { padding-top: 32px; }
+  .lock { align-items: flex-start; }
+  section.s { padding-block: 72px; }
+  .every { grid-template-columns: 1fr; }
+  .ticks span:nth-child(even) { display: none; }
+  .tl svg { height: 120px; }
+  .chip { font-size: 13px; padding: 9px 11px; }
+  .seg { gap: 2px; height: 60px; }
+  .dot { width: 22px; height: 22px; margin: -11px 0 0 -11px; font-size: 11px; line-height: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .dot { transition: none; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 14h6l-1 7 8-11h-6Z"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-magnet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a6 6 0 0 0 12 0V3"/><path d="M6 7h4M14 7h4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01" stroke-width="3"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="img/grabbit_tile.svg" alt=""><span>Grabbit<span class="full"> Download Manager</span></span></a>
+    <nav aria-label="Sections">
+      <a href="#videos">Videos</a>
+      <a href="#clips">Clips &amp; AI</a>
+      <a href="#data">Data saver</a>
+      <a href="#guide">How to use</a>
+      <a href="#faq">Questions</a>
+    </nav>
+    <a class="btn get-it" href="https://github.com/awaleH12/grabbit/releases/latest/download/Grabbit-Setup.exe"><svg><use href="#i-down"/></svg><span class="lbl">Download</span></a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="lock"><img src="img/grabbit_tile.svg" width="84" height="84" alt=""><h1>Grabbit Download Manager</h1></div>
+      <div class="hero-sub">
+        <div>
+          <p>Press Download on any video, or take only the 30 seconds you want. Grabbit shows you the part everyone replays, and never starts a download over.</p>
+          <p class="fine">Free during launch, for Windows 10 and 11. Version 2.5.0. Activate once with your phone number.</p>
+        </div>
+        <div class="cta">
+          <a class="btn get-it" href="https://github.com/awaleH12/grabbit/releases/latest/download/Grabbit-Setup.exe"><svg><use href="#i-down"/></svg><span class="lbl">Download for Windows</span></a>
+          <a class="btn ghost" href="#guide">See how it works</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="strip" id="clips-demo">
+      <div class="wrap">
+        <div class="tl">
+          <div class="tl-meta"><span>Football highlights – the final, 5:00</span><span>Most replayed</span></div>
+          <svg viewBox="0 0 1000 170" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="heatfill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#FF6A3D" stop-opacity=".85"/><stop offset="1" stop-color="#FF6A3D" stop-opacity=".04"/></linearGradient></defs>
+            <path d="M0,150 C60,148 90,120 130,128 C170,136 200,140 240,110 C270,88 285,20 300,22 C318,24 330,96 360,112 C400,132 430,120 470,104 C500,92 520,118 560,124 C600,130 640,70 660,66 C690,62 700,118 740,124 C780,130 820,96 850,100 C880,104 900,136 1000,140 L1000,170 L0,170 Z" fill="url(#heatfill)"/>
+            <path d="M0,150 C60,148 90,120 130,128 C170,136 200,140 240,110 C270,88 285,20 300,22 C318,24 330,96 360,112 C400,132 430,120 470,104 C500,92 520,118 560,124 C600,130 640,70 660,66 C690,62 700,118 740,124 C780,130 820,96 850,100 C880,104 900,136 1000,140" fill="none" stroke="#FF8A5C" stroke-width="3" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <div class="track" id="track">
+            <div class="chip num" id="chip" aria-live="polite">26-second clip · 2.6 MB instead of 29.9 MB</div>
+            <div class="sel" id="sel" tabindex="0" role="slider" aria-label="Clip position (arrow keys move it, Shift + arrow keys change its length)" aria-valuemin="0" aria-valuemax="300">
+              <span class="h l" data-edge="l"></span><span class="h r" data-edge="r"></span>
+            </div>
+          </div>
+          <div class="ticks num" aria-hidden="true"><span>0:00</span><span>0:30</span><span>1:00</span><span>1:30</span><span>2:00</span><span>2:30</span><span>3:00</span><span>3:30</span><span>4:00</span><span>4:30</span><span>5:00</span></div>
+          <div class="tl-foot">
+            <div class="moments" id="moments">
+              <button type="button" data-s="86" data-e="112" aria-pressed="true"><svg style="color:#FF6A3D"><use href="#i-trend"/></svg>Top moment 1:26</button>
+              <button type="button" data-s="190" data-e="214" aria-pressed="false"><svg style="color:#FF8A3D"><use href="#i-trend"/></svg>Strong 3:10</button>
+              <button type="button" data-s="250" data-e="272" aria-pressed="false"><svg style="color:#FFB02E"><use href="#i-trend"/></svg>Notable 4:10</button>
+            </div>
+            <span class="hint">Drag the clip, or stretch its edges.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s" id="videos">
+    <div class="wrap split">
+      <div class="copy">
+        <h2>A Download button on every video.</h2>
+        <p>Add the Grabbit extension to Chrome or Edge and every video gets a Download button. Prefer links? Copy one anywhere and Grabbit fills it in by itself.</p>
+        <p class="sites">Works with <b>YouTube</b>, <b>TikTok</b>, <b>Facebook</b>, <b>Instagram</b>, <b>X</b>, <b>WhatsApp statuses</b>, <b>Vimeo</b> and many more.</p>
+        <ul class="points">
+          <li><b>TikTok with its real sound:</b> Grabbit picks the copy with the video's own voice and music.</li>
+          <li><b>Facebook videos and Reels,</b> including ones only your friends can see, using your browser's login.</li>
+          <li><b>WhatsApp statuses:</b> open one in WhatsApp Web and press Save.</li>
+        </ul>
+      </div>
+      <figure class="shot"><img src="img/page_zoom.webp" width="1240" height="728" loading="lazy" alt="A video in the browser with Grabbit's Download and Clip from 1:36 buttons in its corner."></figure>
+    </div>
+  </section>
+
+  <section class="s" id="quality" style="padding-top:0">
+    <div class="wrap split rev">
+      <div class="copy">
+        <h2>Pick the picture. The best sound comes with it.</h2>
+        <p>Every copy a video has, from 360p to 4K, in H.264, VP9 or AV1, each with its size. Choose the picture and Grabbit adds the best sound, then joins them into one MP4.</p>
+        <ul class="points">
+          <li><b>Recommended</b> is already picked: the best quality up to Full HD that plays everywhere.</li>
+          <li><b>For editing:</b> tick one box and get an extra H.264 copy that Premiere Pro and CapCut open.</li>
+          <li><b>Small file</b> picks a lighter copy, up to 480p, when data matters more than pixels.</li>
+        </ul>
+      </div>
+      <figure class="shot"><img src="img/g_quality.webp" width="1800" height="1200" loading="lazy" alt="Grabbit's quality window: copies from 360p to 4K with their sizes, and the best AAC sound selected. Total 172 MB."></figure>
+    </div>
+  </section>
+
+  <section class="s band" id="clips">
+    <div class="wrap split">
+      <div class="copy">
+        <h2>Ask the AI why a moment works.</h2>
+        <p>Choose Only a part and Grabbit downloads just those seconds. It marks the moments viewers replay most and the times people point at in the comments.</p>
+        <ul class="points">
+          <li><b>Explain with AI:</b> Claude reads the video's captions and says what happens in each moment and why it would work as a short clip. It uses your own Claude key, usually a fraction of a cent per video.</li>
+          <li><b>Clip from here:</b> in your browser, start a clip at the exact second you're watching.</li>
+          <li>Several clips from one video in one go, in original quality.</li>
+        </ul>
+      </div>
+      <figure class="shot"><img src="img/moments.webp" width="1180" height="318" loading="lazy" alt="Grabbit's Best moments with the AI's reason for the chosen one: The host reveals the trick behind the colours."></figure>
+    </div>
+  </section>
+
+  <section class="s" id="data">
+    <div class="wrap split rev">
+      <div class="copy">
+        <h2>Made for data bundles.</h2>
+        <p>Grabbit knows when your PC is on mobile data or a phone hotspot. It counts what it downloads there, stays out of your way on Wi-Fi, and stops before you go over your bundle.</p>
+        <ul class="points">
+          <li><b>Wait for Wi-Fi:</b> on mobile data, a big file shows its size first, with a button to start it once you're back on Wi-Fi.</li>
+          <li><b>A monthly limit:</b> enter your bundle and the day it renews. Grabbit warns at 80% and holds downloads at 100%.</li>
+          <li><b>Download tonight</b> for night bundles. The PC can sleep or shut down when everything is done.</li>
+        </ul>
+      </div>
+      <div class="netdemo">
+        <div class="switch" role="group" aria-label="Try it: connection">
+          <button type="button" data-net="wifi" aria-pressed="true">On Wi-Fi</button>
+          <button type="button" data-net="mobile" aria-pressed="false">On a hotspot</button>
+        </div>
+        <div class="meter">
+          <div class="row"><span>Data this month</span><span>Resets 1 Dec</span></div>
+          <div class="row"><b class="num">6.3 GB</b><span class="num">of 20 GB</span></div>
+          <div class="barx"><i></i></div>
+          <span class="status wifi" id="net-status">● On Wi-Fi · not counted</span>
+        </div>
+        <div class="dlrow"><span>Windows tools.iso · 4.2 GB</span><span class="run" id="net-row">Downloading</span></div>
+        <figure class="shot"><img src="img/wifi.webp" width="1120" height="428" loading="lazy" alt="On a hotspot, Grabbit shows the size first: Python course - full lesson pack.zip, 860 MB, with Download, Wait for Wi-Fi, Download tonight and Cancel."></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="s band" id="guide" aria-labelledby="guide-h">
+    <div class="wrap">
+      <div class="s-head">
+        <h2 id="guide-h">Your first download, step by step.</h2>
+        <p>Real screens from Grabbit Download Manager. Each number shows where to click; point at one to read what it does.</p>
+      </div>
+      <div class="steps" role="tablist" aria-label="Steps" id="steps"></div>
+      <div class="stage">
+        <div class="annot" id="annot"><figure class="shot"><img id="stage-img" src="img/g_browser.webp" width="1400" height="672" alt=""></figure></div>
+        <div class="legend" role="tabpanel" id="legend" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s" id="phone">
+    <div class="wrap split">
+      <div class="copy">
+        <h2>From the PC to your phone, over Wi-Fi.</h2>
+        <p>Select a finished download, press Send to phone and scan the code with the phone's camera. The file travels over your own Wi-Fi: no cable, no app to install, and no internet data used.</p>
+      </div>
+      <figure class="shot"><img src="img/phone.webp" width="1200" height="756" loading="lazy" alt="The Send to phone window with a QR code and three steps."></figure>
+    </div>
+  </section>
+
+  <section class="s" style="padding-top:0" aria-labelledby="every-h">
+    <div class="wrap">
+      <div class="s-head"><h2 id="every-h">And everything a download manager should do.</h2></div>
+      <div class="every">
+        <div><svg><use href="#i-zap"/></svg><h3>Up to 32 connections</h3><p>Each file downloads in parts side by side, and a finished part helps the slowest one.</p></div>
+        <div><svg><use href="#i-redo"/></svg><h3>Never starts over</h3><p>When the internet drops, Grabbit waits and carries on from the exact byte it stopped at, even after a restart.</p></div>
+        <div><svg><use href="#i-magnet"/></svg><h3>Torrents and magnet links</h3><p>Pick only the files you want from a torrent. Sharing back stays off unless you turn it on.</p></div>
+        <div><svg><use href="#i-list"/></svg><h3>Many links at once</h3><p>Paste a message full of links, or grab every file on a web page, and tick the ones you want.</p></div>
+        <div><svg><use href="#i-folder"/></svg><h3>Tidy folders</h3><p>Finished files go into Videos, Music, Pictures, Documents, Compressed and Programs.</p></div>
+        <div><svg><use href="#i-phone"/></svg><h3>Plays on any phone</h3><p>The converter makes an H.264 copy that phones, CapCut and Premiere Pro open, using your graphics card when it can.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s" style="padding-top:0" aria-labelledby="pro-h">
+    <div class="wrap">
+      <div class="pro">
+        <div>
+          <h2 id="pro-h">Free during launch. Later, pay with your phone.</h2>
+          <p>When paid plans start, Grabbit tells you inside the app first and gives you a free trial. Then you pay with mobile money right in the app: no card, and it unlocks straight away.</p>
+        </div>
+        <div class="pay" aria-label="Payment options"><span>EVC Plus</span><span>Zaad</span><span>eDahab</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s" id="faq" style="padding-top:0">
+    <div class="wrap get">
+      <div>
+        <h2>Get Grabbit Download Manager.</h2>
+        <div class="cta" style="margin-top:28px"><a class="btn get-it" href="https://github.com/awaleH12/grabbit/releases/latest/download/Grabbit-Setup.exe"><svg><use href="#i-down"/></svg><span class="lbl">Download for Windows</span></a></div>
+        <div class="req"><span>Version 2.5.0, Grabbit-Setup.exe, 124 MB</span><span>Windows 10 or 11, 64-bit</span><span>Installs for your user only, no admin rights needed</span></div>
+      </div>
+      <div>
+        <details open><summary>Windows says “Windows protected your PC”. Is Grabbit safe?</summary><p>Windows shows this for new apps it hasn't seen many people download yet. Press More info, then Run anyway. The warning goes away as more people install Grabbit.</p></details>
+        <details><summary>Is it free?</summary><p>Yes, during launch: downloads, videos, clips, torrents, the data saver and Send to phone. When paid plans start, Grabbit tells you inside the app first and gives you a free trial. The AI explanations are billed to your own Claude account, usually a fraction of a cent per video.</p></details>
+        <details><summary>Why does Grabbit ask for my phone number?</summary><p>Your number is your Grabbit account. You enter it once to activate Grabbit, it lets you move Grabbit to a new PC, and it's the number you'll pay from with EVC Plus, Zaad or eDahab.</p></details>
+        <details><summary>Which video sites work?</summary><p>YouTube, TikTok, Facebook (videos and Reels), Instagram, X and many more. Some need you to be logged in: then use the Download button on the video in Chrome or Edge. Grabbit keeps its video support up to date by itself.</p></details>
+        <details><summary>What happens when my internet drops?</summary><p>The download waits, tries again by itself and carries on from where it stopped. If you close Grabbit or restart the PC, unfinished downloads continue next time.</p></details>
+        <details><summary>Does the data counter include my browser?</summary><p>No. It counts what Grabbit downloads on mobile data and hotspots. Wi-Fi isn't counted, and your browser and other apps use data too.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap"><span><b>Grabbit Download Manager</b>, free during launch, for Windows 10 and 11</span><span>Only download what you have the right to.</span></div>
+</footer>
+
+
+<script>
+(() => {
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- Download buttons: the browser saves the real file, and a light card plays the 32 connections ---------- */
+  const START = [11, 9, 7, 13, 6, 12, 8, 10, 11, 7, 14, 8, 10, 12, 6, 11, 9, 13, 7, 11, 8, 10, 12, 7, 10, 9, 13, 8, 12, 10, 6, 9];
+  const PACE = START.map((_, i) => 0.75 + ((i * 37) % 23) / 30);
+  function card(group) {
+    let c = group.nextElementSibling;
+    if (c && c.classList.contains("dl")) return c;
+    c = document.createElement("div"); c.className = "dl";
+    c.innerHTML = '<div class="dl-top"><span class="dl-name">Grabbit-Setup.exe</span><span class="dl-count"></span></div>' +
+      '<div class="dl-bars" aria-hidden="true">' + "<i></i>".repeat(32) + "</div>" +
+      '<div class="dl-line" aria-hidden="true"><span></span></div>' +
+      '<p class="dl-cap">This is how Grabbit downloads: each file in 32 parts at once. Your browser is saving this one.</p>' +
+      '<div class="dl-next" role="status" hidden><b>When Grabbit-Setup.exe is in your Downloads:</b><ol><li>Open it.</li>' +
+      "<li>If Windows says “Windows protected your PC”, press <b>More info</b>, then <b>Run anyway</b>.</li>" +
+      "<li>Press <b>Download</b> on any video, or copy a link.</li></ol></div>";
+    group.after(c);
+    return c;
+  }
+  function play(btn) {
+    const lbl = btn.querySelector(".lbl"), text = btn.dataset.text || lbl.textContent;
+    btn.dataset.text = text; btn.classList.add("going"); lbl.textContent = "Downloading…";
+    const done = () => { lbl.textContent = "Download started"; setTimeout(() => { btn.classList.remove("going"); lbl.textContent = text; }, 2600); };
+    const group = btn.closest(".cta");
+    if (!group) { setTimeout(done, 900); return; }          // the small button in the header
+    const c = card(group), bars = [...c.querySelectorAll(".dl-bars i")], line = c.querySelector(".dl-line"),
+          count = c.querySelector(".dl-count"), next = c.querySelector(".dl-next");
+    next.hidden = true;
+    const paint = k => {
+      let sum = 0, full = 0;
+      bars.forEach((b, i) => {
+        const p = Math.min(100, START[i] + (100 - START[i]) * Math.min(1, k * PACE[i]));
+        sum += p; if (p >= 100) full++;
+        b.style.setProperty("--p", p + "%"); b.classList.toggle("done", p >= 100);
+      });
+      line.style.setProperty("--p", (sum / 32) + "%");
+      count.textContent = full === 32 ? "32 of 32 parts done" : "32 connections · " + full + " parts done";
+    };
+    const finish = () => { paint(2); next.hidden = false; done(); };
+    if (still) { finish(); return; }
+    let t0 = null; const dur = 2600;
+    const step = ts => { if (t0 === null) t0 = ts; const k = (ts - t0) / dur; paint(k * 1.35); if (k < 1) requestAnimationFrame(step); else finish(); };
+    requestAnimationFrame(step);
+  }
+  document.querySelectorAll(".get-it").forEach(a => a.addEventListener("click", () => {
+    if (!a.classList.contains("going")) play(a);       // the link itself downloads the file
+  }));
+
+  /* ---------- the Most replayed timeline: drag the clip ---------- */
+  const LEN = 300, WHOLE = 29.9, track = document.getElementById("track"), sel = document.getElementById("sel"),
+        chip = document.getElementById("chip"), mbtns = [...document.querySelectorAll("#moments button")];
+  let s = 86, e = 112;
+  const clock = x => Math.floor(x / 60) + ":" + String(Math.round(x % 60)).padStart(2, "0");
+  function draw() {
+    sel.style.left = (s / LEN * 100) + "%"; sel.style.width = ((e - s) / LEN * 100) + "%";
+    const len = Math.round(e - s), mb = WHOLE * len / LEN;
+    chip.textContent = `${len}-second clip · ${mb.toFixed(1)} MB instead of ${WHOLE} MB`;
+    const mid = (s + e) / 2 / LEN * track.clientWidth, half = chip.offsetWidth / 2;
+    chip.style.left = Math.max(half, Math.min(track.clientWidth - half, mid)) + "px";
+    sel.setAttribute("aria-valuenow", Math.round(s)); sel.setAttribute("aria-valuetext", `${clock(s)} to ${clock(e)}`);
+    mbtns.forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.s === Math.round(s) && +b.dataset.e === Math.round(e))));
+  }
+  let drag = null;
+  track.addEventListener("pointerdown", ev => {
+    const r = track.getBoundingClientRect(), at = (ev.clientX - r.left) / r.width * LEN;
+    const edge = ev.target.dataset && ev.target.dataset.edge;
+    if (!edge && ev.target !== sel) { const len = e - s; s = Math.max(0, Math.min(LEN - len, at - len / 2)); e = s + len; draw(); }
+    drag = { edge: edge || "move", x0: at, s0: s, e0: e };
+    track.setPointerCapture(ev.pointerId); ev.preventDefault();
+  });
+  track.addEventListener("pointermove", ev => {
+    if (!drag) return;
+    const r = track.getBoundingClientRect(), at = Math.max(0, Math.min(LEN, (ev.clientX - r.left) / r.width * LEN)), d = at - drag.x0;
+    if (drag.edge === "move") { const len = drag.e0 - drag.s0; s = Math.max(0, Math.min(LEN - len, drag.s0 + d)); e = s + len; }
+    else if (drag.edge === "l") s = Math.max(0, Math.min(e - 5, drag.s0 + d));
+    else e = Math.min(LEN, Math.max(s + 5, drag.e0 + d));
+    draw();
+  });
+  ["pointerup", "pointercancel"].forEach(t => track.addEventListener(t, () => { drag = null; }));
+  sel.addEventListener("keydown", ev => {
+    if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+    const d = ev.key === "ArrowRight" ? 1 : -1;
+    if (ev.shiftKey) e = Math.max(s + 5, Math.min(LEN, e + d));
+    else { const len = e - s; s = Math.max(0, Math.min(LEN - len, s + d)); e = s + len; }
+    draw(); ev.preventDefault();
+  });
+  mbtns.forEach(b => b.addEventListener("click", () => { s = +b.dataset.s; e = +b.dataset.e; draw(); }));
+  addEventListener("resize", draw);
+  draw();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+
+  /* ---------- data saver: Wi-Fi or hotspot ---------- */
+  const nb = [...document.querySelectorAll(".switch button")], $st = document.getElementById("net-status"), $row = document.getElementById("net-row");
+  nb.forEach(b => b.addEventListener("click", () => {
+    const mobile = b.dataset.net === "mobile";
+    nb.forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    $st.textContent = mobile ? "● On a hotspot · counted" : "● On Wi-Fi · not counted";
+    $st.className = "status " + (mobile ? "mobile" : "wifi");
+    $row.textContent = mobile ? "Waiting for Wi-Fi" : "Downloading";
+    $row.className = mobile ? "wait" : "run";
+  }));
+
+  /* ---------- guide ---------- */
+  const STEPS = [
+    { tab: "Connect your browser", img: "img/g_browser.webp", w: 1400, h: 672, title: "Connect Chrome or Edge",
+      text: "Once, after installing: open Settings → Browser. Grabbit walks you through it in three clicks.",
+      alt: "Grabbit Settings, Browser tab, with the Set up browser extension button.",
+      marks: [[8.43, 45.23, "Set up browser extension: Grabbit shows the three clicks to make in Chrome or Edge"]] },
+    { tab: "Press Download on a video", img: "img/g_page.webp", w: 1800, h: 1260, title: "Press Download on any video",
+      text: "Point at a video in your browser and Grabbit's buttons appear in its corner.",
+      alt: "A video in the browser with Grabbit's Download and Clip from 1:36 buttons.",
+      marks: [[68.9, 13.29, "Download: the quality window opens in Grabbit"], [93.04, 13.29, "Clip from here: starts a clip at the second you're watching"]] },
+    { tab: "Or copy a link", img: "img/g_link.webp", w: 1800, h: 953, title: "Or copy a link",
+      text: "Copy a link from anywhere, a chat, a website or a message, and Grabbit fills it in.",
+      alt: "Grabbit's main window with a video link in the link box.",
+      marks: [[58.16, 18.33, "The link appears here by itself when you copy it"], [82.13, 16.11, "Or press Paste"],
+              [89.12, 16.11, "Add: files start at once, videos ask for the quality first"], [97.5, 16.11, "More: Download tonight, Add many links, Open torrent file"]] },
+    { tab: "Choose the quality", img: "img/g_quality.webp", w: 1800, h: 1200, title: "Choose the quality",
+      text: "The best choice is already picked (★). Change it only if you want something else.",
+      alt: "The quality window with video and audio lists.",
+      marks: [[70.1, 5.94, "Whole video, or Only a part of it"], [46.25, 27.66, "The picture: 4K, 2K, 1080p… in H.264, VP9 or AV1, each with its size"],
+              [94.38, 27.66, "The sound: the best AAC is picked for you, or choose another track"], [18.65, 91.88, "Small file: a lighter copy that saves data"],
+              [79.06, 91.88, "Download: picture and sound are joined into one MP4"]] },
+    { tab: "Only a part", img: "img/g_clip.webp", w: 1800, h: 1800, title: "Only a part, and the best moments",
+      text: "Choose Only a part to download just the seconds you want.",
+      alt: "The clip window with the Most replayed graph, a selected clip and Best moments.",
+      marks: [[84.3, 3.9, "Only a part: download just the minutes you want"], [5.2, 12.6, "Most replayed: the parts viewers watch again and again"],
+              [36.7, 21.4, "Drag the edges, or type the start and end times"], [3.9, 45.3, "Best moments: one click turns a moment into a clip"],
+              [71.5, 45.5, "Explain with AI: what happens there and why it could go viral (done here)"], [77.6, 94.9, "Download clip: only those seconds are downloaded"]] },
+    { tab: "Watch it download", img: "img/g_progress.webp", w: 1800, h: 953, title: "Watch it download",
+      text: "Everything you download is listed here, with its progress.",
+      alt: "Grabbit's main window with downloads in progress.",
+      marks: [[84.19, 56.53, "Each download: speed, time left, and how many connections it uses"], [17.57, 93.06, "Pause and Resume: carries on later, even after a restart"],
+              [85.66, 93.06, "Send to phone: scan a code and the file goes over your Wi-Fi"], [98.01, 93.06, "Open the folder: files are already sorted by type"],
+              [1.99, 65.56, "Data this month: what your downloads cost from your bundle (Wi-Fi isn't counted)"]] }
+  ];
+  const stepsEl = document.getElementById("steps"), annot = document.getElementById("annot"),
+        img = document.getElementById("stage-img"), legend = document.getElementById("legend");
+  let cur = 0;
+  STEPS.forEach((st, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.setAttribute("role", "tab"); b.id = "step-tab-" + i; b.setAttribute("aria-controls", "legend");
+    b.innerHTML = `<span class="n">${i + 1}</span>${st.tab}`;
+    b.addEventListener("click", () => show(i));
+    b.addEventListener("keydown", ev => {
+      if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+      const n = (i + (ev.key === "ArrowRight" ? 1 : STEPS.length - 1)) % STEPS.length; show(n); stepsEl.children[n].focus();
+    });
+    stepsEl.appendChild(b);
+  });
+  const light = n => {
+    annot.querySelectorAll(".dot").forEach(d => d.classList.toggle("on", +d.dataset.n === n));
+    legend.querySelectorAll("li").forEach(l => l.classList.toggle("on", +l.dataset.n === n));
+  };
+  function show(i) {
+    cur = i; const st = STEPS[i];
+    [...stepsEl.children].forEach((b, k) => { b.setAttribute("aria-selected", String(k === i)); b.tabIndex = k === i ? 0 : -1; });
+    img.src = st.img; img.width = st.w; img.height = st.h; img.alt = st.alt;
+    annot.querySelectorAll(".dot").forEach(d => d.remove());
+    st.marks.forEach(([x, y, label], k) => {
+      const d = document.createElement("button");
+      d.type = "button"; d.className = "dot"; d.dataset.n = k + 1; d.textContent = k + 1;
+      d.style.left = x + "%"; d.style.top = y + "%"; d.setAttribute("aria-label", (k + 1) + ": " + label);
+      ["mouseenter", "focus", "click"].forEach(t => d.addEventListener(t, () => light(k + 1)));
+      annot.appendChild(d);
+    });
+    legend.setAttribute("aria-labelledby", "step-tab-" + i);
+    legend.innerHTML = `<h3>${st.title}</h3><p>${st.text}</p><ol>${st.marks.map((m, k) =>
+      `<li data-n="${k + 1}"><b>${k + 1}</b><span>${m[2]}</span></li>`).join("")}</ol>
+      <div class="stage-nav"><button type="button" id="prev" ${i === 0 ? "disabled" : ""}>Back</button>
+      <button type="button" id="next" ${i === STEPS.length - 1 ? "disabled" : ""}>Next step</button></div>`;
+    legend.querySelectorAll("li").forEach(l => l.addEventListener("mouseenter", () => light(+l.dataset.n)));
+    legend.querySelector("#prev").addEventListener("click", () => show(Math.max(0, cur - 1)));
+    legend.querySelector("#next").addEventListener("click", () => show(Math.min(STEPS.length - 1, cur + 1)));
+  }
+  show(0);
+})();
+</script>
+
+</html>
