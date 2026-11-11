@@ -193,6 +193,23 @@ footer b { color: var(--ink); font-weight: 600; }
 .dl-next ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
 .dl-next[hidden] { display: none; }
 
+/* the two Windows screens new users meet, drawn small, with what to press ringed */
+.ss-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 4px; }
+.ss { margin: 0; display: flex; flex-direction: column; }
+.ss-box { flex: 1; background: #0067C0; color: #fff; border-radius: 6px; padding: 10px 10px 10px; min-height: 118px;
+  display: flex; flex-direction: column; gap: 6px; font: 400 11px/1.35 "Segoe UI", system-ui, sans-serif; }
+.ss-box .ss-title { font-size: 14px; line-height: 1.15; }
+.ss-box .ss-text { opacity: .9; }
+.ss-box .ss-link { text-decoration: underline; align-self: flex-start; }
+.ss-box .ss-btns { margin-top: auto; display: flex; gap: 6px; justify-content: flex-end; }
+.ss-box .ss-btns span { background: #fff; color: #111; font-weight: 600; padding: 4px 7px; font-size: 10.5px; white-space: nowrap; }
+@media (max-width: 420px) { .ss-box .ss-btns { gap: 4px; } .ss-box .ss-btns span { padding: 3px 5px; font-size: 10px; } }
+.ss-box .ss-hit { outline: 3px solid var(--warm); outline-offset: 2px; border-radius: 2px; }
+.ss figcaption { margin-top: 7px; font-size: 14px; color: var(--ink); display: flex; gap: 7px; align-items: center; }
+.ss figcaption i { font-style: normal; flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--ink); color: var(--paper); font-size: 12px; font-weight: 600; }
+.dl-next p.ss-why, details p.ss-why { font-size: 13px; line-height: 1.5; color: var(--muted); max-width: none; margin: 8px 0 0; }
+
 @media (max-width: 960px) {
   .split, .split.rev, .stage, .get, .pro { grid-template-columns: 1fr; gap: 36px; }
   .split.rev > .copy { order: 0; }
@@ -418,7 +435,7 @@ footer b { color: var(--ink); font-weight: 600; }
         <div class="req"><span>Version 2.5.0, Grabbit-Setup.exe, 124 MB</span><span>Windows 10 or 11, 64-bit</span><span>Installs for your user only, no admin rights needed</span></div>
       </div>
       <div>
-        <details open><summary>Windows says “Windows protected your PC”. Is Grabbit safe?</summary><p>Windows shows this for new apps it hasn't seen many people download yet. Press More info, then Run anyway. The warning goes away as more people install Grabbit.</p></details>
+        <details open><summary>Windows says “Windows protected your PC”. Is Grabbit safe?</summary><p>Windows shows this for any new app that not many people have downloaded yet. It isn't because something was found in Grabbit. Press More info, then Run anyway:</p><div class="ss-steps"><figure class="ss"><div class="ss-box" aria-hidden="true"><span class="ss-title">Windows protected your PC</span><span class="ss-text">Microsoft Defender SmartScreen prevented an unrecognized app from starting.</span><span class="ss-link ss-hit">More info</span></div><figcaption><i>1</i><span>Press <b>More info</b></span></figcaption></figure><figure class="ss"><div class="ss-box" aria-hidden="true"><span class="ss-title">Windows protected your PC</span><span class="ss-text">App: Grabbit-Setup.exe<br>Publisher: Unknown publisher</span><span class="ss-btns"><span class="ss-hit">Run anyway</span><span>Don’t run</span></span></div><figcaption><i>2</i><span>Press <b>Run anyway</b></span></figcaption></figure></div><p class="ss-why">The warning goes away as more people install Grabbit.</p></details>
         <details><summary>Is it free?</summary><p>Yes, during launch: downloads, videos, clips, torrents, the data saver and Send to phone. When paid plans start, Grabbit tells you inside the app first and gives you a free trial. The AI explanations are billed to your own Claude account, usually a fraction of a cent per video.</p></details>
         <details><summary>Why does Grabbit ask for my phone number?</summary><p>Your number is your Grabbit account. You enter it once to activate Grabbit, it lets you move Grabbit to a new PC, and it's the number you'll pay from with EVC Plus, Zaad or eDahab.</p></details>
         <details><summary>Which video sites work?</summary><p>YouTube, TikTok, Facebook (videos and Reels), Instagram, X and many more. Some need you to be logged in: then use the Download button on the video in Chrome or Edge. Grabbit keeps its video support up to date by itself.</p></details>
@@ -441,6 +458,7 @@ footer b { color: var(--ink); font-weight: 600; }
   /* ---------- Download buttons: the browser saves the real file, and a light card plays the 32 connections ---------- */
   const START = [11, 9, 7, 13, 6, 12, 8, 10, 11, 7, 14, 8, 10, 12, 6, 11, 9, 13, 7, 11, 8, 10, 12, 7, 10, 9, 13, 8, 12, 10, 6, 9];
   const PACE = START.map((_, i) => 0.75 + ((i * 37) % 23) / 30);
+  const SS_STEPS = '<div class="ss-steps"><figure class="ss"><div class="ss-box" aria-hidden="true"><span class="ss-title">Windows protected your PC</span><span class="ss-text">Microsoft Defender SmartScreen prevented an unrecognized app from starting.</span><span class="ss-link ss-hit">More info</span></div><figcaption><i>1</i><span>Press <b>More info</b></span></figcaption></figure><figure class="ss"><div class="ss-box" aria-hidden="true"><span class="ss-title">Windows protected your PC</span><span class="ss-text">App: Grabbit-Setup.exe<br>Publisher: Unknown publisher</span><span class="ss-btns"><span class="ss-hit">Run anyway</span><span>Don’t run</span></span></div><figcaption><i>2</i><span>Press <b>Run anyway</b></span></figcaption></figure></div>';
   function card(group) {
     let c = group.nextElementSibling;
     if (c && c.classList.contains("dl")) return c;
@@ -449,9 +467,10 @@ footer b { color: var(--ink); font-weight: 600; }
       '<div class="dl-bars" aria-hidden="true">' + "<i></i>".repeat(32) + "</div>" +
       '<div class="dl-line" aria-hidden="true"><span></span></div>' +
       '<p class="dl-cap">This is how Grabbit downloads: each file in 32 parts at once. Your browser is saving this one.</p>' +
-      '<div class="dl-next" role="status" hidden><b>When Grabbit-Setup.exe is in your Downloads:</b><ol><li>Open it.</li>' +
-      "<li>If Windows says “Windows protected your PC”, press <b>More info</b>, then <b>Run anyway</b>.</li>" +
-      "<li>Press <b>Download</b> on any video, or copy a link.</li></ol></div>";
+      '<div class="dl-next" role="status" hidden><b>When Grabbit-Setup.exe is in your Downloads, open it.</b> ' +
+      "Windows doesn't know Grabbit yet, so it shows a blue warning first:" + SS_STEPS +
+      '<p class="ss-why">This shows for any new app, not because something was found in Grabbit. ' +
+      "After installing, activate with your phone number and press <b>Download</b> on any video.</p></div>";
     group.after(c);
     return c;
   }
