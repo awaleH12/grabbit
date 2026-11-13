@@ -1,6 +1,10 @@
 {
- "version": "2.5.0",
- "url": "https://github.com/awaleH12/grabbit/releases/download/v2.5.0/Grabbit-Setup.exe",
- "sha256": "22e456eeb3d7c7645f86dedac8687a03352d2564da47bcf00cfd6495941e8adc",
- "notes": "Grabbit's first public release."
+ "version": "2.5.1",
+ "url": "https://github.com/awaleH12/grabbit/releases/download/v2.5.1/Grabbit-Setup.exe",
+ "sha256": "e22d8b54e71512c22214d000726a5347f3c372ac84d694bbbea4d770130bc416",
+ "notes": "Reliability and security improvements.",
+ "sig_v": 1,
+ "kid": "d8963dff",
+ "payload": "eyJub3RlcyI6IlJlbGlhYmlsaXR5IGFuZCBzZWN1cml0eSBpbXByb3ZlbWVudHMuIiwic2hhMjU2IjoiZTIyZDhiNTRlNzE1MTJjMjIyMTRkMDAwNzI2YTUzNDdmM2MzNzJhYzg0ZDY5NGJiYmVhNGQ3NzAxMzBiYzQxNiIsInVybCI6Imh0dHBzOi8vZ2l0aHViLmNvbS9hd2FsZUgxMi9ncmFiYml0L3JlbGVhc2VzL2Rvd25sb2FkL3YyLjUuMS9HcmFiYml0LVNldHVwLmV4ZSIsInZlcnNpb24iOiIyLjUuMSJ9",
+ "sig": "XyWww3-ZbGspDLUEbVqG4EXPh_DCYAgUBJFGNLDTKBmnUlXPUu_6KyKoECiaK1I6XkjExUbA8wCsipzufRgnAA"
 }
